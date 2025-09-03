@@ -1,0 +1,19 @@
+[package]
+name = "audio_engine"
+version = "0.1.0"
+edition = "2021"
+
+
+[lib]
+name = "soundcore"
+crate-type = ["cdylib"]
+
+
+[dependencies]
+cpal = { version = "0.15", features = ["wasm-bindgen"] }
+dasp = { version = "0.11", features = ["signal", "ring_buffer", "envelope"] }
+lazy_static = "1.4"
+rand = "0.8"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+parking_lot = "0.12"

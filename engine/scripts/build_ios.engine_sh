@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+
+CRATE_DIR=$(cd "$(dirname "$0")/../audio_engine" && pwd)
+OUT_DIR="$CRATE_DIR/../out/ios"
+mkdir -p "$OUT_DIR"
+
+
+# Targets
+rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios || true
+
+
+cargo build --manifest-path "$CRATE_DIR/Cargo.toml" --target aarch64-apple-ios --release
+cargo build --manifest-path "$CRATE_DIR/Cargo.toml" --target aarch64-apple-ios-sim --release
+
+
+# Create lipo libraries for simulator (optional if you ship both slices)
+# Generate header (optional)
+# cbindgen --crate audio_engine --output "$OUT_DIR/soundcore.h"
+
+
+# Create xcframework
+xcodebuild -create-xcframework \
+-library "$CRATE_DIR/target/aarch64-apple-ios/release/libsoundcore.a" \
+-library "$CRATE_DIR/target/aarch64-apple-ios-sim/release/libsoundcore.a" \
+-output "$OUT_DIR/SoundCore.xcframework"
+
+
+echo "Add SoundCore.xcframework to flutter_app/ios Runner (Embed & Sign). Use DynamicLibrary.process() on iOS."

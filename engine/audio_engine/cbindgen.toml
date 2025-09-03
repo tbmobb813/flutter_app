@@ -1,0 +1,10 @@
+language = "C"
+include_version = true
+
+
+[export]
+item_types = ["functions"]
+
+
+[parse]
+expand = true
