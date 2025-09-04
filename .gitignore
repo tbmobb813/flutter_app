@@ -12,6 +12,11 @@
 .swiftpm/
 migrate_working_dir/
 
+# Flutter SDK downloads (don't commit these)
+flutter_linux_*.tar.xz
+flutter_*.tar.xz
+flutter_*.zip
+
 # IntelliJ related
 *.iml
 *.ipr
@@ -43,3 +48,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Rust build artifacts
+/engine/audio_engine/target/
+/engine/out/
+
+# Temporary directories
+/tmp/

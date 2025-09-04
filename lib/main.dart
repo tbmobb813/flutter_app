@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
+import 'services/audio_service.dart';
 
-
-void main() {
-WidgetsFlutterBinding.ensureInitialized();
-runApp(const EndelCloneApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize audio service
+  try {
+    await AudioService.init(44100.0, 2);
+  } catch (e) {
+    print('Audio service initialization failed: $e');
+  }
+  
+  runApp(const EndelCloneApp());
 }
 
 

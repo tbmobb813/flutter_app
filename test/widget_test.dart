@@ -8,23 +8,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:flutter_app/main.dart';
+import 'package:endel_clone/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  testWidgets('Soundscapes app loads correctly', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(const EndelCloneApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Verify that our app shows the correct title and modes.
+    expect(find.text('Soundscapes'), findsOneWidget);
+    expect(find.text('Focus'), findsOneWidget);
+    expect(find.text('Relax'), findsOneWidget);
+    expect(find.text('Sleep'), findsOneWidget);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Verify icons are present
+    expect(find.byIcon(Icons.center_focus_strong), findsOneWidget);
+    expect(find.byIcon(Icons.spa), findsOneWidget);
+    expect(find.byIcon(Icons.nightlight_round), findsOneWidget);
   });
 }
