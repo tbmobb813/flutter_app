@@ -31,6 +31,12 @@ class MainActivity : FlutterActivity() {
                         val ok = EngineHolder.instance.stop()
                         result.success(ok)
                     }
+                    "setConfig" -> {
+                        val cfg = call.argument<String>("config")
+                        Log.d("AudioPlugin", "setConfig($cfg)")
+                        // TODO: forward to JNI if you want native-side config
+                        result.success(true)
+                    }
                     else -> result.notImplemented()
                 }
             }
