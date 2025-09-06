@@ -1,0 +1,18 @@
+[target.aarch64-linux-android]
+# NDK toolchain; adjust path for your environment if needed
+ar = "/home/jnix/android-ndk-r27d/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+linker = "/home/jnix/android-ndk-r27d/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang"
+rustflags = [
+    "-C", "panic=abort",
+    # Force using the system ld.lld (WSL-safe) and the NDK sysroot
+    "-C", "link-arg=-fuse-ld=/usr/bin/ld.lld",
+    "-C", "link-arg=--sysroot=/home/jnix/android-ndk-r27d/toolchains/llvm/prebuilt/linux-x86_64/sysroot",
+    # Android libraries for API level 35
+    "-L", "/home/jnix/android-ndk-r27d/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/35",
+    "-L", "/home/jnix/android-ndk-r27d/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android"
+]
+
+[env]
+CC_aarch64_linux_android = "/home/jnix/android-ndk-r27d/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang"
+CXX_aarch64_linux_android = "/home/jnix/android-ndk-r27d/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang++"
+AR_aarch64_linux_android = "/home/jnix/android-ndk-r27d/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"

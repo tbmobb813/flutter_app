@@ -28,6 +28,18 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Only package our Rust .so for arm64; adjust if you add other ABIs
+        ndk {
+            abiFilters += listOf("arm64-v8a")
+        }
+    }
+
+    // Ensure .so in src/main/jniLibs is packaged
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 
     buildTypes {

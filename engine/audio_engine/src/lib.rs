@@ -1,7 +1,7 @@
 use std::ffi::{CStr, c_char};
 use std::sync::{Arc, Mutex};
 use lazy_static::lazy_static;
-use cpal::{Device, Stream, StreamConfig};
+use cpal::{StreamConfig};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use serde::{Deserialize, Serialize};
 
@@ -40,6 +40,7 @@ struct AudioState {
     intensity: f32,
     sample_rate: f32,
     channels: u32,
+    is_playing: bool,
 }
 
 impl Default for AudioState {
@@ -49,13 +50,13 @@ impl Default for AudioState {
             intensity: 0.5,
             sample_rate: 44100.0,
             channels: 2,
+            is_playing: false,
         }
     }
 }
 
 lazy_static! {
     static ref STATE: Arc<Mutex<AudioState>> = Arc::new(Mutex::new(AudioState::default()));
-    static ref STREAM_HANDLE: Arc<Mutex<Option<Stream>>> = Arc::new(Mutex::new(None));
 }
 
 // Simple noise generators
@@ -122,92 +123,160 @@ pub extern "C" fn sc_start(config_json: *const c_char) {
         let mut state = STATE.lock().unwrap();
         state.config = Some(config.clone());
         state.intensity = config.intensity;
+        state.is_playing = true;
     }
 
-    // Stop existing stream
-    if let Some(stream) = STREAM_HANDLE.lock().unwrap().take() {
-        drop(stream);
-    }
+    // Create and start audio stream in a new thread
+    std::thread::spawn(move || {
+        use cpal::{traits::DeviceTrait as _, traits::HostTrait as _, traits::StreamTrait as _, Sample, SampleFormat};
 
-    let host = cpal::default_host();
-    let device = host.default_output_device().expect("No output device available");
-    
-    let state_clone = Arc::clone(&STATE);
-    let sample_rate = STATE.lock().unwrap().sample_rate;
-    let channels = STATE.lock().unwrap().channels;
-    
-    let config = StreamConfig {
-        channels: channels as u16,
-        sample_rate: cpal::SampleRate(sample_rate as u32),
-        buffer_size: cpal::BufferSize::Default,
-    };
+        let host = cpal::default_host();
+        let device = match host.default_output_device() {
+            Some(d) => d,
+            None => {
+                eprintln!("No output device available");
+                return;
+            }
+        };
 
-    let mut noise_gen = NoiseGenerator::new();
-    let mut time = 0.0f32;
+        // Use the device's preferred config for best compatibility
+        let supported = match device.default_output_config() {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("Failed to get default output config: {}", e);
+                return;
+            }
+        };
 
-    let stream = device.build_output_stream(
-        &config,
-        move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-            let state = state_clone.lock().unwrap();
-            let intensity = state.intensity;
-            let config = state.config.as_ref();
-            let sr = state.sample_rate;
-            let chans = state.channels as usize;
+        let mut noise_gen = NoiseGenerator::new();
+        let mut time = 0.0f32;
+        let state_for_cb = Arc::clone(&STATE);
 
-            if let Some(audio_config) = config {
-                for frame in data.chunks_mut(chans) {
-                    let mut out_l = 0.0f32;
-                    let mut out_r = 0.0f32;
+        // Update state with actual sample rate/channels
+        {
+            let mut st = STATE.lock().unwrap();
+            st.sample_rate = supported.sample_rate().0 as f32;
+            st.channels = supported.channels() as u32;
+        }
 
-                    // Process each layer
-                    for layer in &audio_config.preset.layers {
-                        match layer {
-                            Layer::Noise { color, gain_db } => {
-                                let n = match color.as_str() {
-                                    "white" => noise_gen.white_noise(),
-                                    "pink" => noise_gen.pink_noise(),
-                                    "brown" => noise_gen.brown_noise(),
-                                    _ => noise_gen.pink_noise(),
-                                };
-                                let amp = db_to_amp(*gain_db) * (0.5 + 0.5 * intensity);
-                                out_l += n * amp;
-                                out_r += n * amp;
+        let config: StreamConfig = supported.config();
+
+        fn run_stream<T>(
+            device: &cpal::Device,
+            config: &StreamConfig,
+            state_for_cb: Arc<Mutex<AudioState>>,
+            mut noise_gen: NoiseGenerator,
+            mut time: f32,
+        ) -> Result<cpal::Stream, cpal::BuildStreamError>
+        where
+            T: Sample,
+        {
+            let channels = config.channels as usize;
+            let sr = config.sample_rate.0 as f32;
+
+            device.build_output_stream(
+                config,
+                move |output: &mut [T], _| {
+                    let state = state_for_cb.lock().unwrap();
+                    let intensity = state.intensity;
+                    let config_ref = state.config.as_ref();
+
+                    if let Some(audio_config) = config_ref {
+                        // We'll compute in f32 then convert to T
+                        for frame in output.chunks_mut(channels) {
+                            let mut out_l = 0.0f32;
+                            let mut out_r = 0.0f32;
+
+                            for layer in &audio_config.preset.layers {
+                                match layer {
+                                    Layer::Noise { color, gain_db } => {
+                                        let n = match color.as_str() {
+                                            "white" => noise_gen.white_noise(),
+                                            "pink" => noise_gen.pink_noise(),
+                                            "brown" => noise_gen.brown_noise(),
+                                            _ => noise_gen.pink_noise(),
+                                        };
+                                        let amp = db_to_amp(*gain_db) * (0.6 + 0.6 * intensity);
+                                        out_l += n * amp;
+                                        out_r += n * amp;
+                                    }
+                                    Layer::Binaural { base_hz, beat_hz, mix_db } => {
+                                        let left_freq = base_hz - beat_hz * 0.5;
+                                        let right_freq = base_hz + beat_hz * 0.5;
+                                        let left = (2.0 * std::f32::consts::PI * left_freq * time).sin();
+                                        let right = (2.0 * std::f32::consts::PI * right_freq * time).sin();
+                                        let amp = db_to_amp(*mix_db) * (0.9 + 0.4 * intensity);
+                                        out_l += left * amp;
+                                        out_r += right * amp;
+                                    }
+                                    Layer::Pad { wave: _, gain_db } => {
+                                        let freq = 110.0;
+                                        let signal = (2.0 * std::f32::consts::PI * freq * time).sin();
+                                        let amp = db_to_amp(*gain_db) * (0.8 + 0.5 * intensity);
+                                        out_l += signal * amp;
+                                        out_r += signal * amp;
+                                    }
+                                }
                             }
-                            Layer::Binaural { base_hz, beat_hz, mix_db } => {
-                                let left_freq = base_hz - beat_hz * 0.5;
-                                let right_freq = base_hz + beat_hz * 0.5;
-                                let left = (2.0 * std::f32::consts::PI * left_freq * time).sin();
-                                let right = (2.0 * std::f32::consts::PI * right_freq * time).sin();
-                                let amp = db_to_amp(*mix_db) * (0.8 + 0.4 * intensity);
-                                out_l += left * amp;
-                                out_r += right * amp;
+
+                            // Soft clip and write to all channels
+                            let l = out_l.tanh();
+                            let r = out_r.tanh();
+                            match channels {
+                                0 => {}
+                                1 => {
+                                    frame[0] = T::from(&(0.5 * (l + r)));
+                                }
+                                _ => {
+                                    frame[0] = T::from(&l);
+                                    frame[1] = T::from(&r);
+                                    // mirror to any extra channels
+                                    for ch in 2..channels {
+                                        frame[ch] = T::from(&(0.5 * (l + r)));
+                                    }
+                                }
                             }
-                            Layer::Pad { wave: _, gain_db } => {
-                                let freq = 110.0; // Base frequency
-                                let signal = (2.0 * std::f32::consts::PI * freq * time).sin();
-                                let amp = db_to_amp(*gain_db) * (0.6 + 0.6 * intensity);
-                                out_l += signal * amp;
-                                out_r += signal * amp;
-                            }
+
+                            time += 1.0 / sr;
+                        }
+                    } else {
+                        // If not configured yet, output silence
+                        for sample in output.iter_mut() {
+                            *sample = T::from(&0.0);
                         }
                     }
+                },
+                move |err| eprintln!("Audio error: {}", err),
+                None,
+            )
+        }
 
-                    // Simple soft clipping
-                    frame[0] = out_l.tanh();
-                    if chans > 1 {
-                        frame[1] = out_r.tanh();
-                    }
+        let stream = match supported.sample_format() {
+            SampleFormat::F32 => run_stream::<f32>(&device, &config, state_for_cb, noise_gen, time),
+            SampleFormat::I16 => run_stream::<i16>(&device, &config, state_for_cb, noise_gen, time),
+            SampleFormat::U16 => run_stream::<u16>(&device, &config, state_for_cb, noise_gen, time),
+            _ => run_stream::<f32>(&device, &config, state_for_cb, noise_gen, time),
+        };
 
-                    time += 1.0 / sr;
-                }
+        let stream = match stream {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Failed to build audio stream: {}", e);
+                return;
             }
-        },
-        move |err| eprintln!("Audio error: {}", err),
-        None,
-    ).expect("Failed to build audio stream");
+        };
 
-    stream.play().expect("Failed to start audio stream");
-    *STREAM_HANDLE.lock().unwrap() = Some(stream);
+        if let Err(e) = stream.play() {
+            eprintln!("Failed to start audio stream: {}", e);
+            return;
+        }
+
+        loop {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            let is_playing = STATE.lock().unwrap().is_playing;
+            if !is_playing { break; }
+        }
+    });
 }
 
 #[no_mangle]
@@ -224,7 +293,6 @@ pub extern "C" fn sc_update(params_json: *const c_char) {
 
 #[no_mangle]
 pub extern "C" fn sc_stop() {
-    if let Some(stream) = STREAM_HANDLE.lock().unwrap().take() {
-        drop(stream);
-    }
+    let mut state = STATE.lock().unwrap();
+    state.is_playing = false;
 }
