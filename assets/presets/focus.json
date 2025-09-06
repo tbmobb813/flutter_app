@@ -1,0 +1,8 @@
+{
+  "name": "Focus",
+  "layers": [
+    { "type": "noise", "color": "pink", "gain_db": -18 },
+    { "type": "binaural", "base_hz": 200.0, "beat_hz": 8.5, "mix_db": -32 }
+  ],
+  "reverb": { "mix_db": -26 }
+}

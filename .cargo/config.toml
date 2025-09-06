@@ -1,0 +1,8 @@
+[target.aarch64-linux-android]
+# Use the Android NDK's clang driver when cross‑compiling for Android.
+# Replace {ndk_path} with the actual path to your installed NDK.
+ar = "{ndk_path}/toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-ar.exe"
+linker = "{ndk_path}/toolchains/llvm/prebuilt/windows-x86_64/bin/aarch64-linux-android21-clang.exe"
+
+[target.x86_64-pc-windows-msvc]
+# Windows builds use the MSVC toolchain.  No special configuration needed.

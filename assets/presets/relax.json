@@ -1,0 +1,8 @@
+{
+  "name": "Relax",
+  "layers": [
+    { "type": "noise", "color": "pink", "gain_db": -20 },
+    { "type": "pad", "wave": "sine", "gain_db": -28 }
+  ],
+  "reverb": { "mix_db": -26 }
+}
