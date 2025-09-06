@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../services/audio_service.dart';
@@ -22,35 +23,20 @@ class _SessionScreenState extends State<SessionScreen> {
     super.dispose();
   }
 
-  Map<String, dynamic> _presetFor(String mode) {
-    // Minimal inline preset; later load from assets/presets/*.json
-    switch (mode) {
-      case 'Relax':
-        return {
-          'name': 'Relax',
-          'layers': [
-            {'type': 'noise', 'color': 'pink', 'gain_db': -20},
-            {'type': 'pad', 'wave': 'sine', 'gain_db': -28}
-          ],
-          'reverb': {'mix_db': -26},
-        };
-      case 'Sleep':
-        return {
-          'name': 'Sleep',
-          'layers': [
-            {'type': 'noise', 'color': 'brown', 'gain_db': -24}
-          ],
-          'reverb': {'mix_db': -30},
-        };
-      default:
-        return {
-          'name': 'Focus',
-          'layers': [
-            {'type': 'noise', 'color': 'pink', 'gain_db': -18},
-            {'type': 'binaural', 'base_hz': 200.0, 'beat_hz': 8.5, 'mix_db': -32}
-          ],
-        };
-    }
+  Future<Map<String, dynamic>> _loadPreset(String mode) async {
+    final file = switch (mode) {
+      'Relax' => 'assets/presets/relax.json',
+      'Sleep' => 'assets/presets/sleep.json',
+      _ => 'assets/presets/focus.json',
+    };
+    final raw = await rootBundle.loadString(file);
+    return jsonDecode(raw) as Map<String, dynamic>;
+  }
+
+  Future<void> _startAudioService(String modeName, double intensity) async {
+    final preset = await _loadPreset(modeName);
+    final config = jsonEncode({'preset': preset, 'intensity': intensity});
+    AudioService.start(config);
   }
 
   @override
@@ -77,12 +63,7 @@ class _SessionScreenState extends State<SessionScreen> {
             FilledButton(
               onPressed: () async {
                 if (!running) {
-                  final preset = _presetFor(widget.modeName);
-                  final config = jsonEncode({
-                    'preset': preset,
-                    'intensity': intensity,
-                  });
-                  AudioService.start(config);
+                  await _startAudioService(widget.modeName, intensity);
                   setState(() => running = true);
                 } else {
                   AudioService.stop();
