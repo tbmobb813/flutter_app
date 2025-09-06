@@ -4,22 +4,26 @@ description: Generative soundscapes (Flutter + Rust FFI)
 version: 0.1.0+1
 
 environment:
-  sdk: ">=3.4.0 <4.0.0"
+  sdk: ">=3.7.0 <4.0.0"  # bump SDK constraint to satisfy ffi >=2.1.4 and other packages
 
 dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.6
-  ffi: ^2.1.2
-  path_provider: ^2.1.4
+  ffi: ^2.1.4                 # newer ffi requires Dart 3.7+
+  path_provider: ^2.1.5       # pull in updated android/foundation implementations
+  characters: ^1.4.1          # minor performance improvement:contentReference[oaicite:0]{index=0}
+  vector_math: ^2.2.0         # improves math performance:contentReference[oaicite:1]{index=1}
+  material_color_utilities: ^0.13.0  # requires Dart 3.5:contentReference[oaicite:2]{index=2}
+  meta: ^1.17.0               # requires Dart 3.5:contentReference[oaicite:3]{index=3}
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
-
-flutter:
-  uses-material-design: true
-  assets:
-    # Include the presets directory once; Flutter will recursively include JSON files.
-    - assets/presets/
+  flutter_lints: ^6.0.0       # updated lints
+  lints: ^6.0.0               # updated general lints
+  leak_tracker: ^11.0.1       # dev/test; no runtime impact:contentReference[oaicite:4]{index=4}
+  leak_tracker_testing: ^3.0.2
+  leak_tracker_flutter_testing: ^3.0.10
+  test_api: ^0.7.7
+  vm_service: ^15.0.2         # minor deserialization perf improvement:contentReference[oaicite:5]{index=5}
