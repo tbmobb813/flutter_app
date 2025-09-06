@@ -1,82 +1,68 @@
-//! Native audio engine stub for the Endel clone.
-//!
-//! This crate exposes a C ABI so it can be loaded from Dart via FFI.
-//! The functions parse simple JSON payloads and would normally
-//! drive a DSP engine; here they simply deserialize the JSON and
-//! store it in a global state.  Extend this module with real audio
-//! synthesis when you're ready.
+// src/lib.rs
 
-use serde::Deserialize;
-use std::ffi::{CStr, CString};
-use std::os::raw::{c_char, c_float, c_int};
 use std::sync::Mutex;
+use once_cell::sync::Lazy;
 
-/// Global engine state.  In a real implementation this would manage
-/// audio threads, oscillators, filters, etc.  Here we just keep the
-/// last configuration for debugging.
-static ENGINE_STATE: Mutex<Option<EngineConfig>> = Mutex::new(None);
-
-#[derive(Debug, Deserialize, Clone)]
-struct EngineConfig {
-    #[serde(default)]
-    preset: serde_json::Value,
-    #[serde(default)]
-    intensity: Option<f32>,
+// ----- optional logging (see section D for Cargo.toml deps) -----
+#[cfg(target_os = "android")]
+fn init_logger_once() {
+    static DONE: Lazy<()> = Lazy::new(|| {
+        android_logger::init_once(
+            android_logger::Config::default().with_min_level(log::Level::Info),
+        );
+        log::info!("android logger ready");
+    });
+    Lazy::force(&DONE);
 }
 
-/// Initialize the engine.  Called once on startup.
-#[no_mangle]
-pub extern "C" fn sc_init(sample_rate: c_float, channels: c_int) {
-    // In a real engine, allocate buffers and launch audio threads.
-    println!("soundcore: init sample_rate={} channels={}", sample_rate, channels);
+// ----- your engine singleton -----
+struct MyEngine;
+impl MyEngine {
+    fn new() -> Self { MyEngine }
+    fn init(&mut self) -> bool { true }             // TODO: set up Oboe stream
+    fn start(&mut self) -> Result<(), ()> { Ok(()) } // TODO: requestStart()
+    fn stop(&mut self) -> Result<(), ()> { Ok(()) }  // TODO: requestStop()
 }
 
-/// Start a session with the given JSON config.
+static ENGINE: Lazy<Mutex<MyEngine>> = Lazy::new(|| Mutex::new(MyEngine::new()));
+
+// ---- JNI glue ----
+use jni::objects::JClass;
+use jni::sys::{jboolean, JNI_TRUE, JNI_FALSE};
+use jni::JNIEnv;
+
+// Replace this with your own JNI class path:
+// Java_{PACKAGE_WITH_UNDERSCORES}_NativeBridge_jniInit
 #[no_mangle]
-pub extern "C" fn sc_start(config_json: *const c_char) {
-    if config_json.is_null() {
-        return;
-    }
-    let json_str = unsafe { CStr::from_ptr(config_json).to_string_lossy().into_owned() };
-    match serde_json::from_str::<EngineConfig>(&json_str) {
-        Ok(cfg) => {
-            let mut state = ENGINE_STATE.lock().unwrap();
-            *state = Some(cfg.clone());
-            println!("soundcore: start session with config: {:?}", cfg);
-        }
-        Err(err) => {
-            println!("soundcore: failed to parse start config: {}", err);
-        }
-    }
+pub extern "system" fn Java_com_yourcompany_endelclone_NativeBridge_jniInit(
+    _env: JNIEnv,
+    _cls: JClass,
+) -> jboolean {
+    #[cfg(target_os = "android")]
+    init_logger_once();
+    let ok = ENGINE.lock().unwrap().init();
+    log::info!("jniInit -> {}", ok);
+    if ok { JNI_TRUE } else { JNI_FALSE }
 }
 
-/// Update the current session with incremental parameters.
 #[no_mangle]
-pub extern "C" fn sc_update(update_json: *const c_char) {
-    if update_json.is_null() {
-        return;
-    }
-    let json_str = unsafe { CStr::from_ptr(update_json).to_string_lossy().into_owned() };
-    match serde_json::from_str::<serde_json::Value>(&json_str) {
-        Ok(update) => {
-            let mut state = ENGINE_STATE.lock().unwrap();
-            if let Some(cfg) = state.as_mut() {
-                // Merge update into current state.  For simplicity just log.
-                println!("soundcore: update received: {}", update);
-            }
-        }
-        Err(err) => {
-            println!("soundcore: failed to parse update: {}", err);
-        }
-    }
+pub extern "system" fn Java_com_yourcompany_endelclone_NativeBridge_play(
+    _env: JNIEnv,
+    _cls: JClass,
+) -> jboolean {
+    #[cfg(target_os = "android")]
+    init_logger_once();
+    let ok = ENGINE.lock().unwrap().start().is_ok();
+    log::info!("play -> {}", ok);
+    if ok { JNI_TRUE } else { JNI_FALSE }
 }
 
-/// Stop the current session.
 #[no_mangle]
-pub extern "C" fn sc_stop() {
-    let mut state = ENGINE_STATE.lock().unwrap();
-    if state.is_some() {
-        println!("soundcore: stop session");
-        *state = None;
-    }
+pub extern "system" fn Java_com_yourcompany_endelclone_NativeBridge_stop(
+    _env: JNIEnv,
+    _cls: JClass,
+) -> jboolean {
+    let ok = ENGINE.lock().unwrap().stop().is_ok();
+    log::info!("stop -> {}", ok);
+    if ok { JNI_TRUE } else { JNI_FALSE }
 }
