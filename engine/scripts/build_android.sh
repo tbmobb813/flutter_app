@@ -22,7 +22,7 @@ local target="$1"; local triple="$2"; local abi="$3";
 export CARGO_TARGET_${target//-/_}_LINKER="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/${triple}${API}-clang"
 cargo +stable build --manifest-path "$CRATE_DIR/Cargo.toml" --target "$target" --release
 mkdir -p "$OUT_DIR/$abi"
-cp "$CRATE_DIR/target/$target/release/libsoundcore.so" "$OUT_DIR/$abi/"
+cp "$CRATE_DIR/target/$target/release/libaudio_engine.so" "$OUT_DIR/$abi/"
 }
 
 
