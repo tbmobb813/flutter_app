@@ -1,22 +1,21 @@
 param([switch]$WithEmulator)
 
-# Build the Rust audio engine for Android and copy the resulting .so into the Flutter project.
-# Requires cargo-ndk to be installed (`cargo install cargo-ndk`).
-# Run this from the repository root or via the script path.
-
+# Run from the repo root or via this script’s path.
 Set-StrictMode -Version Latest
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = 'Stop'
 
 Push-Location (Split-Path $PSCommandPath)
 try {
-    # Navigate into the engine crate
-    Set-Location ..\engine
+    # Navigate into the audio_engine crate (not the root soundcore crate)
+    Set-Location ..\engine\audio_engine
 
-    # Ensure the target is installed
+    # Ensure the aarch64 target is installed
     rustup target add aarch64-linux-android | Out-Null
 
-    # Build the engine for arm64-v8a.  Add other -t arguments if you need more ABIs.
-    cargo ndk -t arm64-v8a -o ..\app\android\app\src\main\jniLibs build --release
-} finally {
+    # Build the audio_engine crate for arm64‑v8a and output into the Flutter jniLibs folder.
+    # Adjust the path if you need other ABIs (e.g. add -t armeabi‑v7a).
+    cargo ndk -t arm64-v8a -o ..\..\android\app\src\main\jniLibs build --release
+}
+finally {
     Pop-Location
 }
