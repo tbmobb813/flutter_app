@@ -10,21 +10,20 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.6
-  path_provider: ^2.1.5       # pull in updated android/foundation implementations
-  vector_math: ^2.2.0         # improves math performance:contentReference[oaicite:1]{index=1}
+  path_provider: ^2.1.5
+  vector_math: ^2.2.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0       # updated lints
-  lints: ^6.0.0               # updated general lints
-  leak_tracker: ^11.0.1       # dev/test; no runtime impact:contentReference[oaicite:4]{index=4}
+  flutter_lints: ^6.0.0
+  lints: ^6.0.0
+  leak_tracker: ^11.0.1
   leak_tracker_testing: ^3.0.2
   leak_tracker_flutter_testing: ^3.0.10
-  vm_service: ^15.0.2         # minor deserialization perf improvement:contentReference[oaicite:5]{index=5}
+  vm_service: ^15.0.2
 
 flutter:
   uses-material-design: true
-  
   assets:
     - assets/presets/
