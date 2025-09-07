@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 import '../services/audio_service.dart';
-import '../services/audio_test.dart'; // <- MethodChannel quick test (Android)
 
 class SessionScreen extends StatefulWidget {
   final String modeName;
@@ -24,26 +23,15 @@ class _SessionScreenState extends State<SessionScreen> {
   void dispose() {
     if (running) {
       // Best effort stop; cannot await in dispose since dispose must be synchronous.
-      // Consistent with mounted check pattern used elsewhere for safe UI updates.
       AudioService.stop();
     }
     super.dispose();
   }
 
-  Future<Map<String, dynamic>> _loadPreset(String mode) async {
-    final file = switch (mode) {
-      'Relax' => 'assets/presets/relax.json',
-      'Sleep' => 'assets/presets/sleep.json',
-      _ => 'assets/presets/focus.json',
-    };
-    final raw = await rootBundle.loadString(file);
-    return jsonDecode(raw) as Map<String, dynamic>;
-  }
-
   Future<void> _startAudioService(String modeName, double intensity) async {
-    final preset = await _loadPreset(modeName);
-    final config = jsonEncode({'preset': preset, 'intensity': intensity});
-    AudioService.start(config);
+    final preset = await PresetLoader.loadPreset(modeName);
+    final config = PresetLoader.createConfig(preset, intensity);
+    await AudioService.start(config);
   }
 
   void _showError(Object e) {
@@ -107,7 +95,7 @@ class _SessionScreenState extends State<SessionScreen> {
                       } else {
                         // Stop
                         try {
-                          AudioService.stop();
+                          await AudioService.stop();
                         } catch (e) {
                           _showError(e);
                         } finally {
@@ -118,41 +106,27 @@ class _SessionScreenState extends State<SessionScreen> {
               child: Text(running ? 'Stop' : 'Start'),
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 24),
 
-            // Quick Android test tone (no Rust rebuild needed)
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton.tonal(
-                    onPressed: (Platform.isAndroid && !busy)
-                        ? () => AudioTest.playTone(
-                              freq: 440,
-                              ms: 1000,
-                              volume: intensity,
-                            )
-                        : null,
-                    child: const Text('Test Tone (440 Hz)'),
-                  ),
+            // Status display
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Status',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Mode: ${widget.modeName}'),
+                    Text('Intensity: ${(intensity * 100).round()}%'),
+                    Text('State: ${running ? 'Playing' : 'Stopped'}'),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed:
-                        (Platform.isAndroid && !busy) ? AudioTest.stopTone : null,
-                    child: const Text('Stop Test'),
-                  ),
-                ),
-              ],
-            ),
-
-            if (!Platform.isAndroid) ...[
-              const SizedBox(height: 8),
-              Text(
-                'Test Tone is Android-only (uses a MethodChannel).',
-                style: theme.textTheme.bodySmall,
               ),
-            ],
+            ),
           ],
         ),
       ),

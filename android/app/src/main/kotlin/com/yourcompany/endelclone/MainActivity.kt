@@ -34,7 +34,12 @@ class MainActivity : FlutterActivity() {
                         val ok = EngineHolder.instance.stop()
                         result.success(ok)
                     }
-                    // You can add "setConfig" here if needed
+                    "setConfig" -> {
+                        val cfg = call.argument<String>("config")
+                        Log.d("AudioPlugin", "setConfig($cfg)")
+                        val ok = EngineHolder.instance.setConfig(cfg ?: "")
+                        result.success(ok)
+                    }
                     else -> result.notImplemented()
                 }
             }

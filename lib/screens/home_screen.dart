@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../screens/session_screen.dart';
+import '../test_audio.dart';
 
 
 class HomeScreen extends StatelessWidget {
@@ -16,7 +17,18 @@ final modes = const [
 
 
 return Scaffold(
-appBar: AppBar(title: const Text('Soundscapes')),
+appBar: AppBar(
+title: const Text('Soundscapes'),
+actions: [
+IconButton(
+icon: const Icon(Icons.bug_report),
+tooltip: 'Debug Test',
+onPressed: () => Navigator.of(context).push(
+MaterialPageRoute(builder: (_) => const AudioEngineTest()),
+),
+),
+],
+),
 body: GridView.builder(
 padding: const EdgeInsets.all(16),
 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

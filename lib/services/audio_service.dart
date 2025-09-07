@@ -1,73 +1,88 @@
-import 'dart:ffi';
-import 'dart:io';
-import 'package:ffi/ffi.dart';
-
-typedef _init_t = Void Function(Float, Int32);
-typedef _start_t = Void Function(Pointer<Utf8>);
-typedef _update_t = Void Function(Pointer<Utf8>);
-typedef _stop_t = Void Function();
+import 'package:flutter/services.dart';
+import 'dart:convert';
 
 class AudioService {
-  static late final DynamicLibrary _lib;
-  static late final void Function(double, int) _init;
-  static late final void Function(Pointer<Utf8>) _start;
-  static late final void Function(Pointer<Utf8>) _update;
-  static late final void Function() _stop;
+  static const MethodChannel _channel = MethodChannel('audio_engine');
   
   static bool _initialized = false;
 
-  static Future<void> init(double sampleRate, int channels) async {
+  /// Initialize the audio service
+  static Future<void> init() async {
     if (_initialized) return;
     
     try {
-      if (Platform.isAndroid) {
-        _lib = DynamicLibrary.open('libsoundcore.so');
-      } else if (Platform.isIOS) {
-        _lib = DynamicLibrary.process();
-      } else {
-        // Desktop fallback
-        _lib = DynamicLibrary.open('libsoundcore.so');
-      }
-      
-      _init = _lib.lookupFunction<_init_t, void Function(double, int)>('sc_init');
-      _start = _lib.lookupFunction<_start_t, void Function(Pointer<Utf8>)>('sc_start');
-      _update = _lib.lookupFunction<_update_t, void Function(Pointer<Utf8>)>('sc_update');
-      _stop = _lib.lookupFunction<_stop_t, void Function()>('sc_stop');
-
-      _init(sampleRate, channels);
+      final result = await _channel.invokeMethod('ping');
+      print('AudioService ping result: $result');
       _initialized = true;
     } catch (e) {
-      print('Failed to initialize audio engine: $e');
+      print('Failed to initialize audio service: $e');
       rethrow;
     }
   }
 
-  static void start(String presetJson) {
+  /// Start audio playback with the given preset and intensity
+  static Future<void> start(String configJson) async {
     if (!_initialized) {
-      throw StateError('AudioService not initialized');
+      await init();
     }
     
-    final p = presetJson.toNativeUtf8();
     try {
-      _start(p);
-    } finally {
-      calloc.free(p);
+      // First set the configuration
+      await _channel.invokeMethod('setConfig', {'config': configJson});
+      
+      // Then start playback
+      final result = await _channel.invokeMethod('play');
+      print('AudioService start result: $result');
+    } catch (e) {
+      print('Failed to start audio: $e');
+      rethrow;
     }
   }
 
-  static void update(String updateJson) {
+  /// Stop audio playback
+  static Future<void> stop() async {
     if (!_initialized) return;
     
-    final p = updateJson.toNativeUtf8();
     try {
-      _update(p);
-    } finally {
-      calloc.free(p);
+      final result = await _channel.invokeMethod('stop');
+      print('AudioService stop result: $result');
+    } catch (e) {
+      print('Failed to stop audio: $e');
     }
   }
 
-  static void stop() {
+  /// Update audio parameters (like intensity)
+  static Future<void> update(String updateJson) async {
     if (!_initialized) return;
-    _stop();
+    
+    try {
+      await _channel.invokeMethod('setConfig', {'config': updateJson});
+    } catch (e) {
+      print('Failed to update audio: $e');
+    }
+  }
+}
+
+/// Helper functions for preset loading
+class PresetLoader {
+  /// Load a preset by mode name from assets
+  static Future<Map<String, dynamic>> loadPreset(String mode) async {
+    final file = switch (mode) {
+      'Relax' => 'assets/presets/relax.json',
+      'Sleep' => 'assets/presets/sleep.json',
+      'Calm' => 'assets/presets/calm.json',
+      _ => 'assets/presets/focus.json',
+    };
+    
+    final raw = await rootBundle.loadString(file);
+    return jsonDecode(raw) as Map<String, dynamic>;
+  }
+  
+  /// Create a config JSON for the audio engine
+  static String createConfig(Map<String, dynamic> preset, double intensity) {
+    return jsonEncode({
+      'preset': preset,
+      'intensity': intensity,
+    });
   }
 }
