@@ -23,3 +23,8 @@ dev_dependencies:
   leak_tracker_testing: ^3.0.2
   leak_tracker_flutter_testing: ^3.0.10
   vm_service: ^15.0.2         # minor deserialization perf improvement:contentReference[oaicite:5]{index=5}
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/presets/
