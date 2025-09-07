@@ -10,6 +10,7 @@ import io.flutter.plugin.common.MethodChannel.Result   // <--
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "audio_engine"
+    private val AUDIO_TEST_CHANNEL = "com.yourcompany.endelclone/audio_test"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -17,8 +18,8 @@ class MainActivity : FlutterActivity() {
         // Ensure native library is loaded and engine initialised once
         EngineHolder.ensureInit()
 
+        // Main audio engine channel
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
-            // Explicitly type the parameters so Kotlin can resolve them
             .setMethodCallHandler { call: MethodCall, result: Result ->
                 when (call.method) {
                     "ping" -> {
@@ -34,7 +35,23 @@ class MainActivity : FlutterActivity() {
                         val ok = EngineHolder.instance.stop()
                         result.success(ok)
                     }
-                    // You can add "setConfig" here if needed
+                    else -> result.notImplemented()
+                }
+            }
+
+        // Audio test channel for simple test tones
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, AUDIO_TEST_CHANNEL)
+            .setMethodCallHandler { call: MethodCall, result: Result ->
+                when (call.method) {
+                    "playTone" -> {
+                        Log.d("AudioTest", "playTone called")
+                        // For now, just return success - actual tone generation would require audio implementation
+                        result.success(null)
+                    }
+                    "stopTone" -> {
+                        Log.d("AudioTest", "stopTone called")
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }

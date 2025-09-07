@@ -5,8 +5,8 @@ import android.util.Log
 class NativeBridge {
     companion object {
         init {
-            System.loadLibrary("audio_engine") // produces libaudio_engine.so
-            Log.d("AudioPlugin", "libaudio_engine loaded")
+            System.loadLibrary("soundcore") // produces libsoundcore.so
+            Log.d("AudioPlugin", "libsoundcore loaded")
         }
     }
 
