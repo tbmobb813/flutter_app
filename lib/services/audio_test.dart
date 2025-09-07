@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 
 class AudioTest {
-  static const _ch = MethodChannel('com.example.flutter_app/audio_test');
+  static const _ch = MethodChannel('com.yourcompany.endelclone/audio_test');
 
   static Future<void> playTone({
     double freq = 440,

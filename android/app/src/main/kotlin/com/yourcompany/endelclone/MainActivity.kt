@@ -5,6 +5,8 @@ import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import io.flutter.plugin.common.MethodCall              // <-- Add these two imports
+import io.flutter.plugin.common.MethodChannel.Result   // <--
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "audio_engine"
@@ -12,11 +14,12 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        // Ensure native library is loaded and engine initialized once
+        // Ensure native library is loaded and engine initialised once
         EngineHolder.ensureInit()
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
-            .setMethodCallHandler { call, result ->
+            // Explicitly type the parameters so Kotlin can resolve them
+            .setMethodCallHandler { call: MethodCall, result: Result ->
                 when (call.method) {
                     "ping" -> {
                         Log.d("AudioPlugin", "ping from Dart")
@@ -25,18 +28,13 @@ class MainActivity : FlutterActivity() {
                     "play" -> {
                         Log.d("AudioPlugin", "play() pressed")
                         val ok = EngineHolder.instance.play()
-                        result.success(ok) // <<-- THIS prevents Dart from seeing null
+                        result.success(ok)
                     }
                     "stop" -> {
                         val ok = EngineHolder.instance.stop()
                         result.success(ok)
                     }
-                    "setConfig" -> {
-                        val cfg = call.argument<String>("config")
-                        Log.d("AudioPlugin", "setConfig($cfg)")
-                        // TODO: forward to JNI if you want native-side config
-                        result.success(true)
-                    }
+                    // You can add "setConfig" here if needed
                     else -> result.notImplemented()
                 }
             }

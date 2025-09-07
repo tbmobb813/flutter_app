@@ -7,7 +7,7 @@ param([switch]$WithEmulator)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-pushd (Split-Path $PSCommandPath)
+Push-Location (Split-Path $PSCommandPath)
 try {
     # Navigate into the engine crate
     Set-Location ..\engine
@@ -18,5 +18,5 @@ try {
     # Build the engine for arm64-v8a.  Add other -t arguments if you need more ABIs.
     cargo ndk -t arm64-v8a -o ..\app\android\app\src\main\jniLibs build --release
 } finally {
-    popd
+    Pop-Location
 }

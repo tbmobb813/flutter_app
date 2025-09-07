@@ -12,10 +12,7 @@ dependencies:
   cupertino_icons: ^1.0.6
   ffi: ^2.1.4                 # newer ffi requires Dart 3.7+
   path_provider: ^2.1.5       # pull in updated android/foundation implementations
-  characters: ^1.4.1          # minor performance improvement:contentReference[oaicite:0]{index=0}
   vector_math: ^2.2.0         # improves math performance:contentReference[oaicite:1]{index=1}
-  material_color_utilities: ^0.13.0  # requires Dart 3.5:contentReference[oaicite:2]{index=2}
-  meta: ^1.17.0               # requires Dart 3.5:contentReference[oaicite:3]{index=3}
 
 dev_dependencies:
   flutter_test:
@@ -25,5 +22,4 @@ dev_dependencies:
   leak_tracker: ^11.0.1       # dev/test; no runtime impact:contentReference[oaicite:4]{index=4}
   leak_tracker_testing: ^3.0.2
   leak_tracker_flutter_testing: ^3.0.10
-  test_api: ^0.7.7
   vm_service: ^15.0.2         # minor deserialization perf improvement:contentReference[oaicite:5]{index=5}

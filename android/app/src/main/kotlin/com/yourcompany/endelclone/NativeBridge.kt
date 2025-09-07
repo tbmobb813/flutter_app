@@ -18,4 +18,5 @@ class NativeBridge {
         val ok = jniInit()
         Log.d("AudioPlugin", "jniInit() -> $ok")
     }
+    
 }
