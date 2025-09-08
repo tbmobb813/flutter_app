@@ -9,7 +9,13 @@
                 "beat_hz": 8.5,
                 "mix_db": -32.0
             }
-        ]
+        ],
+        "reverb": {
+            "room_size": 0.3,
+            "damping": 0.5,
+            "wet_db": -24.0,
+            "dry_db": 0.0
+        }
     },
     "intensity": 0.5
 }
