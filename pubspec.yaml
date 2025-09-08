@@ -3,7 +3,7 @@ publish_to: 'none'
 description: Generative soundscapes (Flutter + Rust FFI)
 version: 0.1.0+1
 environment:
-  sdk: ">=3.4.0 <4.0.0"
+  sdk: ">=3.7.0 <4.0.0"
 
 dependencies:
   flutter:
