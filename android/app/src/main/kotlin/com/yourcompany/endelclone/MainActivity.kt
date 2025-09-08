@@ -1,5 +1,9 @@
 package com.yourcompany.endelclone
 
+import android.media.AudioAttributes
+import android.media.AudioFormat
+import android.media.AudioManager
+import android.media.AudioTrack
 import android.os.Bundle
 import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
@@ -7,11 +11,20 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel.Result
+import kotlinx.coroutines.*
+import kotlin.coroutines.coroutineContext
+import kotlin.math.*
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "audio_engine"
-    // Additional channel used for playing simple test tones from Dart.
     private val AUDIO_TEST_CHANNEL = "com.yourcompany.endelclone/audio_test"
+    
+    // Simple audio generator
+    private var audioTrack: AudioTrack? = null
+    private var audioJob: Job? = null
+    private val sampleRate = 44100
+    private var currentFrequency = 200.0f
+    private var currentIntensity = 0.5f
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -30,10 +43,18 @@ class MainActivity : FlutterActivity() {
                     "play" -> {
                         Log.d("AudioPlugin", "play() pressed")
                         val ok = EngineHolder.instance.play()
+                        
+                        // Also start simple audio generation
+                        startSimpleAudio()
+                        
                         result.success(ok)
                     }
                     "stop" -> {
                         val ok = EngineHolder.instance.stop()
+                        
+                        // Also stop simple audio
+                        stopSimpleAudio()
+                        
                         result.success(ok)
                     }
                     // Pass a configuration string from Dart down to the native engine. Returns
@@ -68,6 +89,90 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+    }
+    
+    private fun startSimpleAudio() {
+        if (audioJob?.isActive == true) return
+        
+        Log.d("AudioPlugin", "🎵 Starting simple audio generation")
+        
+        val bufferSize = AudioTrack.getMinBufferSize(
+            sampleRate,
+            AudioFormat.CHANNEL_OUT_MONO,
+            AudioFormat.ENCODING_PCM_16BIT
+        )
+        
+        audioTrack = AudioTrack(
+            AudioManager.STREAM_MUSIC,
+            sampleRate,
+            AudioFormat.CHANNEL_OUT_MONO,
+            AudioFormat.ENCODING_PCM_16BIT,
+            bufferSize * 2, // Double buffer for smoother playback
+            AudioTrack.MODE_STREAM
+        )
+        
+        audioTrack?.play()
+        
+        audioJob = CoroutineScope(Dispatchers.IO).launch {
+            generateAudioLoop(bufferSize)
+        }
+    }
+    
+    private fun stopSimpleAudio() {
+        Log.d("AudioPlugin", "🔇 Stopping simple audio")
+        
+        audioJob?.cancel()
+        audioJob = null
+        
+        audioTrack?.stop()
+        audioTrack?.release()
+        audioTrack = null
+    }
+    
+    private suspend fun generateAudioLoop(bufferSize: Int) {
+        val buffer = ShortArray(bufferSize / 2) // 16-bit samples
+        var phase = 0.0
+        val baseFreq = 432.0 // Calming base frequency
+        
+        Log.d("AudioPlugin", "🎶 Audio generation loop started at ${baseFreq}Hz")
+        
+        try {
+            while (coroutineContext.isActive && audioTrack != null) {
+                // Calculate phase increment for current frequency
+                val phaseIncrement = 2.0 * PI * baseFreq / sampleRate
+                
+                // Generate audio buffer
+                for (i in buffer.indices) {
+                    // Primary sine wave
+                    val primarySine = sin(phase) * 0.4
+                    
+                    // Add harmonic for richer sound
+                    val harmonic = sin(phase * 1.5) * 0.2 * currentIntensity
+                    
+                    // Add subtle pink noise for ambient feel
+                    val noise = (Math.random() - 0.5) * 0.1 * currentIntensity * 0.5
+                    
+                    // Combine and apply intensity
+                    val sample = (primarySine + harmonic + noise) * currentIntensity * 0.7
+                    
+                    // Convert to 16-bit PCM with clipping protection
+                    buffer[i] = (sample * 32767).coerceIn(-32768.0, 32767.0).toInt().toShort()
+                    
+                    phase += phaseIncrement
+                    if (phase >= 2.0 * PI) phase -= 2.0 * PI
+                }
+                
+                // Write buffer to audio track
+                audioTrack?.write(buffer, 0, buffer.size)
+                
+                // Small delay to prevent CPU overload
+                delay(20)
+            }
+        } catch (e: Exception) {
+            Log.e("AudioPlugin", "Audio generation error: ${e.message}")
+        }
+        
+        Log.d("AudioPlugin", "🎵 Audio generation loop ended")
     }
 }
 

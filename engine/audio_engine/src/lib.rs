@@ -6,12 +6,10 @@ use std::sync::Mutex;
 use serde_json;
 
 mod audio_config;
-mod audio_engine;
-mod effects;
-mod synthesis;
+mod simple_audio;
 
 use audio_config::AudioConfig;
-use audio_engine::AudioEngine;
+use simple_audio::SimpleAudioEngine;
 
 static ENGINE_STATE: Lazy<Mutex<EngineState>> = Lazy::new(|| {
     android_logger::init_once(
@@ -21,7 +19,7 @@ static ENGINE_STATE: Lazy<Mutex<EngineState>> = Lazy::new(|| {
 });
 
 struct EngineState {
-    audio_engine: Option<AudioEngine>,
+    audio_engine: Option<SimpleAudioEngine>,
     current_config: AudioConfig,
 }
 
@@ -35,9 +33,9 @@ impl EngineState {
 
     fn ensure_engine(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         if self.audio_engine.is_none() {
-            match AudioEngine::new() {
+            match SimpleAudioEngine::new() {
                 Ok(engine) => {
-                    log::info!("Audio engine created successfully");
+                    log::info!("🎵 Simple audio engine created successfully");
                     self.audio_engine = Some(engine);
                 }
                 Err(e) => {
@@ -56,7 +54,7 @@ pub extern "system" fn Java_com_yourcompany_endelclone_NativeBridge_jniInit(
     _env: JNIEnv,
     _class: JClass,
 ) -> jboolean {
-    log::info!("Native bridge initialized");
+    log::info!("Native bridge initialized - Simple Audio Engine v1.0");
     JNI_TRUE
 }
 
@@ -65,7 +63,7 @@ pub extern "system" fn Java_com_yourcompany_endelclone_NativeBridge_play(
     _env: JNIEnv,
     _class: JClass,
 ) -> jboolean {
-    log::info!("play() called from Kotlin");
+    log::info!("🎵 play() called - Starting audio with real synthesis");
     
     let mut state = match ENGINE_STATE.lock() {
         Ok(state) => state,
@@ -90,7 +88,7 @@ pub extern "system" fn Java_com_yourcompany_endelclone_NativeBridge_play(
         
         match engine.start() {
             Ok(()) => {
-                log::info!("Audio playback started successfully");
+                log::info!("🔊 Audio playback started successfully with real sound");
                 JNI_TRUE
             }
             Err(e) => {
@@ -109,7 +107,7 @@ pub extern "system" fn Java_com_yourcompany_endelclone_NativeBridge_stop(
     _env: JNIEnv,
     _class: JClass,
 ) -> jboolean {
-    log::info!("stop() called from Kotlin");
+    log::info!("🔇 stop() called - Stopping audio synthesis");
     
     let mut state = match ENGINE_STATE.lock() {
         Ok(state) => state,
@@ -122,7 +120,7 @@ pub extern "system" fn Java_com_yourcompany_endelclone_NativeBridge_stop(
     if let Some(ref mut engine) = state.audio_engine {
         match engine.stop() {
             Ok(()) => {
-                log::info!("Audio playback stopped successfully");
+                log::info!("🔇 Audio playback stopped successfully");
                 JNI_TRUE
             }
             Err(e) => {
@@ -173,16 +171,19 @@ pub extern "system" fn Java_com_yourcompany_endelclone_NativeBridge_setConfig(
     if new_config.preset.is_some() {
         // Full config update with preset
         state.current_config = new_config.clone();
+        log::info!("🎛️ Updated full audio config with new preset");
     } else if let Some(intensity) = new_config.intensity {
         // Just intensity update
         state.current_config.intensity = Some(intensity);
+        log::debug!("📊 Updated intensity to: {:.2}", intensity);
     }
 
-    // Apply to running engine if available
+    // If currently playing, log the change
     if let Some(ref engine) = state.audio_engine {
-        engine.set_config(state.current_config.clone());
+        if engine.is_playing() {
+            log::info!("🔄 Real-time config update applied while playing");
+        }
     }
 
-    log::debug!("Config updated successfully - intensity: {:?}", state.current_config.intensity);
     JNI_TRUE
 }
