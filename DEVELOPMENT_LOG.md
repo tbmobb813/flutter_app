@@ -9,10 +9,11 @@
 ### 🏆 **Complete Success Summary**
 
 This Flutter-based Endel clone now produces **real ambient audio** with:
-- 🎵 **432Hz Calming Base Frequency** 
+
+- 🎵 **432Hz Calming Base Frequency**
 - 🎶 **Rich Harmonic Overtones** (1.5x harmonic)
 - 🌊 **Ambient Pink Noise** (scales with intensity)
-- 🎛️ **Real-Time Intensity Control** 
+- 🎛️ **Real-Time Intensity Control**
 - 📱 **Professional Mobile Audio** (44.1kHz, 16-bit PCM)
 - ⚡ **Smooth Performance** (Coroutine-based generation)
 
