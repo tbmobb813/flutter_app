@@ -1,7 +1,10 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
-import '../services/audio_service.dart';
+import 'dart:io' show Platform;
 
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
+
+import '../services/audio_service.dart';
 
 class SessionScreen extends StatefulWidget {
   final String modeName;
@@ -11,50 +14,37 @@ class SessionScreen extends StatefulWidget {
   State<SessionScreen> createState() => _SessionScreenState();
 }
 
-
 class _SessionScreenState extends State<SessionScreen> {
   double intensity = 0.5;
   bool running = false;
+  bool busy = false;
 
   @override
   void dispose() {
-    if (running) AudioService.stop();
+    if (running) {
+      // Best effort stop; cannot await in dispose since dispose must be synchronous.
+      AudioService.stop();
+    }
     super.dispose();
   }
 
-  Map<String, dynamic> _presetFor(String mode) {
-    // Minimal inline preset; later load from assets/presets/*.json
-    switch (mode) {
-      case 'Relax':
-        return {
-          'name': 'Relax',
-          'layers': [
-            {'type': 'noise', 'color': 'pink', 'gain_db': -20},
-            {'type': 'pad', 'wave': 'sine', 'gain_db': -28}
-          ],
-          'reverb': {'mix_db': -26},
-        };
-      case 'Sleep':
-        return {
-          'name': 'Sleep',
-          'layers': [
-            {'type': 'noise', 'color': 'brown', 'gain_db': -24}
-          ],
-          'reverb': {'mix_db': -30},
-        };
-      default:
-        return {
-          'name': 'Focus',
-          'layers': [
-            {'type': 'noise', 'color': 'pink', 'gain_db': -18},
-            {'type': 'binaural', 'base_hz': 200.0, 'beat_hz': 8.5, 'mix_db': -32}
-          ],
-        };
-    }
+  Future<void> _startAudioService(String modeName, double intensity) async {
+    final preset = await PresetLoader.loadPreset(modeName);
+    final config = PresetLoader.createConfig(preset, intensity);
+    await AudioService.start(config);
+  }
+
+  void _showError(Object e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Audio error: $e')),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(title: Text(widget.modeName)),
       body: Padding(
@@ -65,6 +55,9 @@ class _SessionScreenState extends State<SessionScreen> {
             Text('Intensity: ${intensity.toStringAsFixed(2)}'),
             Slider(
               value: intensity,
+              min: 0,
+              max: 1,
+              divisions: 100,
               onChanged: (v) {
                 setState(() => intensity = v);
                 if (running) {
@@ -73,23 +66,66 @@ class _SessionScreenState extends State<SessionScreen> {
                 }
               },
             ),
-            const SizedBox(height: 24),
+
+            if (busy) ...[
+              const SizedBox(height: 8),
+              const LinearProgressIndicator(),
+            ],
+
+            const SizedBox(height: 16),
+
+            // Start / Stop engine
             FilledButton(
-              onPressed: () async {
-                if (!running) {
-                  final preset = _presetFor(widget.modeName);
-                  final config = jsonEncode({
-                    'preset': preset,
-                    'intensity': intensity,
-                  });
-                  AudioService.start(config);
-                  setState(() => running = true);
-                } else {
-                  AudioService.stop();
-                  setState(() => running = false);
-                }
-              },
+              onPressed: busy
+                  ? null
+                  : () async {
+                      if (!running) {
+                        setState(() => busy = true);
+                        try {
+                          await _startAudioService(widget.modeName, intensity);
+                          if (!mounted) return;
+                          setState(() {
+                            running = true;
+                          });
+                        } catch (e) {
+                          _showError(e);
+                        } finally {
+                          if (mounted) setState(() => busy = false);
+                        }
+                      } else {
+                        // Stop
+                        try {
+                          await AudioService.stop();
+                        } catch (e) {
+                          _showError(e);
+                        } finally {
+                          if (mounted) setState(() => running = false);
+                        }
+                      }
+                    },
               child: Text(running ? 'Stop' : 'Start'),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Status display
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Status',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Mode: ${widget.modeName}'),
+                    Text('Intensity: ${(intensity * 100).round()}%'),
+                    Text('State: ${running ? 'Playing' : 'Stopped'}'),
+                  ],
+                ),
+              ),
             ),
           ],
         ),

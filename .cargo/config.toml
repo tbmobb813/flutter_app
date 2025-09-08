@@ -1,0 +1,10 @@
+# .cargo/config.toml
+
+[target.aarch64-linux-android]
+ar     = "C:/Android/android-ndk-r28c/toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-ar.exe"
+linker = "C:/Android/android-ndk-r28c/toolchains/llvm/prebuilt/windows-x86_64/bin/aarch64-linux-android21-clang.cmd"
+
+# Optional: if you also want an x86_64 emulator build later
+[target.x86_64-linux-android]
+ar     = "C:/Android/android-ndk-r28c/toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-ar.exe"
+linker = "C:/Android/android-ndk-r28c/toolchains/llvm/prebuilt/windows-x86_64/bin/x86_64-linux-android21-clang.cmd"

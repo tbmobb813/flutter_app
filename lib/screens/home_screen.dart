@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../screens/session_screen.dart';
+import '../test_audio.dart';
 
 
 class HomeScreen extends StatelessWidget {
@@ -12,11 +13,14 @@ final modes = const [
 ('Focus', Icons.center_focus_strong),
 ('Relax', Icons.spa),
 ('Sleep', Icons.nightlight_round),
+('🔧 Debug Test', Icons.bug_report),
 ];
 
 
 return Scaffold(
-appBar: AppBar(title: const Text('Soundscapes')),
+appBar: AppBar(
+title: const Text('Soundscapes - Debug Ready'),
+),
 body: GridView.builder(
 padding: const EdgeInsets.all(16),
 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -29,20 +33,33 @@ itemCount: modes.length,
 itemBuilder: (ctx, i) {
 final (name, icon) = modes[i];
 return InkWell(
-onTap: () => Navigator.of(context).push(
+onTap: () {
+if (name == '🔧 Debug Test') {
+Navigator.of(context).push(
+MaterialPageRoute(builder: (_) => const AudioEngineTest()),
+);
+} else {
+Navigator.of(context).push(
 MaterialPageRoute(
 builder: (_) => SessionScreen(modeName: name),
 ),
-),
+);
+}
+},
 child: Card(
 elevation: 1,
+color: name == '🔧 Debug Test' ? Colors.orange.shade100 : null,
 child: Center(
 child: Column(
 mainAxisSize: MainAxisSize.min,
 children: [
-Icon(icon, size: 48),
+Icon(icon, size: 48, 
+  color: name == '🔧 Debug Test' ? Colors.orange.shade700 : null),
 const SizedBox(height: 12),
-Text(name, style: const TextStyle(fontSize: 18)),
+Text(name, style: TextStyle(
+  fontSize: 18,
+  color: name == '🔧 Debug Test' ? Colors.orange.shade700 : null,
+)),
 ],
 ),
 ),
