@@ -1,7 +1,10 @@
 {
-  "name": "Sleep",
-  "layers": [
-    { "type": "noise", "color": "brown", "gain_db": -24 }
-  ],
-  "reverb": { "mix_db": -30 }
+    "preset": {
+        "name": "Sleep",
+        "layers": [
+            {"type": "noise", "color": "brown", "gain_db": -24}
+        ],
+        "reverb": {"mix_db": -30}
+    },
+    "intensity": 0.5
 }

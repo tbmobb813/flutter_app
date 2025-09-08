@@ -1,8 +1,7 @@
 name: endel_clone
 publish_to: 'none'
-description: Generative soundscapes (Flutter + Rust Audio Engine via Method Channels)
+description: Generative soundscapes (Flutter + Rust FFI)
 version: 0.1.0+1
-
 environment:
   sdk: ">=3.7.0 <4.0.0"
 
@@ -10,20 +9,21 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.6
-  path_provider: ^2.1.5
-  vector_math: ^2.2.0
+  ffi: ^2.1.2
+  path_provider: ^2.1.4
+  # Uncomment the following line if you plan to store user preferences such as
+  # last used mode or intensity levels. This package provides a key‑value
+  # persistence API on both iOS and Android.
+  # shared_preferences: ^2.2.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0
-  lints: ^6.0.0
-  leak_tracker: ^11.0.1
-  leak_tracker_testing: ^3.0.2
-  leak_tracker_flutter_testing: ^3.0.10
-  vm_service: ^15.0.2
+  flutter_lints: ^4.0.0
 
 flutter:
   uses-material-design: true
+  # Include the entire presets directory so that new JSON files for Study and
+  # Recovery modes are packaged with the app【49954382413171†L22-L26】.
   assets:
     - assets/presets/
