@@ -14,7 +14,7 @@ dependencies:
   # Uncomment the following line if you plan to store user preferences such as
   # last used mode or intensity levels. This package provides a key‑value
   # persistence API on both iOS and Android.
-  # shared_preferences: ^2.2.0
+  shared_preferences: ^2.2.3
 
 dev_dependencies:
   flutter_test:

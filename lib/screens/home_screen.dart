@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../screens/session_screen.dart';
 
 /// Home screen displaying available sound modes. This version expands the
@@ -7,14 +9,31 @@ import '../screens/session_screen.dart';
 /// Focus mode; in the early evening Relax is recommended; and after 10 PM
 /// Sleep is recommended. Additional modes such as Study and Recovery have
 /// been added to support more contexts like learning or stress recovery.
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String? _lastMode;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLastMode();
+  }
+
+  Future<void> _loadLastMode() async {
+    final sp = await SharedPreferences.getInstance();
+    final last = sp.getString('last_mode');
+    setState(() => _lastMode = last);
+    // You can use _lastMode to preselect/highlight or auto-open SessionScreen if you like
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Available sound modes. Each tuple contains the display name and an
-    // associated icon. New Study and Recovery modes broaden the use cases
-    // beyond the original three provided in the repository【537937622342510†L10-L14】.
     const modes = [
       ('Focus', Icons.center_focus_strong),
       ('Relax', Icons.spa),
@@ -23,10 +42,6 @@ class HomeScreen extends StatelessWidget {
       ('Recovery', Icons.self_improvement),
     ];
 
-    // Compute a recommended mode based on the current hour. This is a
-    // simplified "autopilot" suggesting the most appropriate mode for the
-    // time of day. Morning hours (06–17) default to Focus, early evening
-    // (18–21) defaults to Relax, and late night (22–05) defaults to Sleep.
     final hour = DateTime.now().hour;
     String recommended;
     if (hour >= 22 || hour < 6) {
@@ -48,6 +63,14 @@ class HomeScreen extends StatelessWidget {
               'Suggested mode: $recommended',
               style: Theme.of(context).textTheme.titleMedium,
             ),
+            if (_lastMode != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'Last mode: $_lastMode',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
             const SizedBox(height: 12),
             Expanded(
               child: GridView.builder(
@@ -61,13 +84,18 @@ class HomeScreen extends StatelessWidget {
                 itemBuilder: (ctx, i) {
                   final (name, icon) = modes[i];
                   return InkWell(
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => SessionScreen(modeName: name),
-                      ),
-                    ),
+                    onTap: () async {
+                      final sp = await SharedPreferences.getInstance();
+                      await sp.setString('last_mode', name);
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => SessionScreen(mode: name),
+                        ),
+                      );
+                    },
                     child: Card(
                       elevation: 1,
+                      color: _lastMode == name ? Colors.blue.shade50 : null,
                       child: Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,

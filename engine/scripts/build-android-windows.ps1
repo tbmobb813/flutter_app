@@ -49,34 +49,21 @@ function Build-Arch {
     
     Write-Host "Building for $abi ($target)..."
     
-    # Set linker for this target
-    $linkerPath = "$AndroidNDK\toolchains\llvm\prebuilt\windows-x86_64\bin\$triple$API-clang.exe"
-    
-    if (-not (Test-Path $linkerPath)) {
-        Write-Warning "Linker not found at: $linkerPath"
-        Write-Host "Available linkers:"
-        Get-ChildItem "$AndroidNDK\toolchains\llvm\prebuilt\windows-x86_64\bin" -Filter "*clang.exe" | ForEach-Object { Write-Host "  $($_.Name)" }
-        return $false
-    }
-    
-    $targetEnvVar = "CARGO_TARGET_$($target.Replace('-', '_').ToUpper())_LINKER"
-    Set-Item -Path "env:$targetEnvVar" -Value $linkerPath
-    
-    # Build with cargo
+    # Build with cargo using linker from .cargo/config.toml
     $buildResult = & cargo build --manifest-path "$CRATE_DIR\Cargo.toml" --target $target --release
-    
+
     if ($LASTEXITCODE -ne 0) {
         Write-Error "Failed to build for $target"
         return $false
     }
-    
+
     # Copy library to output
     $abiDir = "$OUT_DIR\$abi"
     New-Item -ItemType Directory -Force -Path $abiDir | Out-Null
-    
+
     $libSource = "$CRATE_DIR\target\$target\release\libaudio_engine.so"
     $libDest = "$abiDir\libaudio_engine.so"
-    
+
     if (Test-Path $libSource) {
         Copy-Item $libSource $libDest -Force
         Write-Host "✓ Built $abi library: $(Get-Item $libDest | Select-Object -ExpandProperty Length) bytes"

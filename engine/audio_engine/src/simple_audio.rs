@@ -72,7 +72,7 @@ impl SimpleAudioEngine {
         
         // Update configuration
         if config.preset.is_some() {
-            self.config = config;
+            self.config = config.clone();
         } else if let Some(intensity) = config.intensity {
             self.config.intensity = Some(intensity);
         }

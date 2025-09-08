@@ -1,10 +1,11 @@
 # .cargo/config.toml
 
-[target.aarch64-linux-android]
-ar     = "C:/Android/android-ndk-r28c/toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-ar.exe"
-linker = "C:/Android/android-ndk-r28c/toolchains/llvm/prebuilt/windows-x86_64/bin/aarch64-linux-android21-clang.cmd"
 
-# Optional: if you also want an x86_64 emulator build later
+[target.aarch64-linux-android]
+linker = "C:\\Users\\jsnni\\AppData\\Local\\Android\\Sdk\\ndk\\28.2.13676358\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\aarch64-linux-android24-clang.cmd"
+
+[target.armv7-linux-androideabi]
+linker = "C:\\Users\\jsnni\\AppData\\Local\\Android\\Sdk\\ndk\\28.2.13676358\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\armv7a-linux-androideabi24-clang.cmd"
+
 [target.x86_64-linux-android]
-ar     = "C:/Android/android-ndk-r28c/toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-ar.exe"
-linker = "C:/Android/android-ndk-r28c/toolchains/llvm/prebuilt/windows-x86_64/bin/x86_64-linux-android21-clang.cmd"
+linker = "C:\\Users\\jsnni\\AppData\\Local\\Android\\Sdk\\ndk\\28.2.13676358\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\x86_64-linux-android24-clang.cmd"

@@ -1,0 +1,8 @@
+{
+  "name": "Focus Variant 2",
+  "layers": [
+    {"type": "noise", "color": "white", "gain_db": -20},
+    {"type": "binaural", "base_hz": 210.0, "beat_hz": 7.0, "mix_db": -30}
+  ],
+  "reverb": {"mix_db": -26}
+}

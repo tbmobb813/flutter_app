@@ -15,7 +15,9 @@ use audio_engine::AudioEngine;
 
 static ENGINE_STATE: Lazy<Mutex<EngineState>> = Lazy::new(|| {
     android_logger::init_once(
-        android_logger::Config::default().with_max_level(log::LevelFilter::Debug),
+        android_logger::Config::default()
+            .with_min_level(log::Level::Debug) // Change to Debug
+            .with_tag("audio_engine")
     );
     Mutex::new(EngineState::new())
 });

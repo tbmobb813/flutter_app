@@ -26,6 +26,7 @@ impl AudioEngine {
     }
 
     pub fn start(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        log::debug!("TEST DEBUG LOG - AudioEngine::start");
         if self.stream.is_some() {
             log::warn!("Audio stream already started");
             return Ok(());
@@ -113,33 +114,28 @@ impl AudioCallback {
                     "pink" => self.noise_gen.generate_pink(),
                     _ => self.noise_gen.generate_white(), // Default to white
                 };
-                
                 let gain = db_to_linear(*gain_db) * intensity;
                 let sample = noise * gain;
+                log::debug!("[GEN] Noise layer: color={}, gain_db={:.2}, intensity={:.2}, sample={:.5}", color, gain_db, intensity, sample);
                 (sample, sample) // Mono to stereo
             }
-            
             Layer::Pad { wave, gain_db } => {
-                // Use a low frequency for ambient pad sounds
                 let frequency = lerp(60.0, 120.0, intensity); // 60-120 Hz range
-                
                 let sample = match wave.as_str() {
                     "sine" => self.pad_osc.generate_sine(frequency),
                     "square" => self.pad_osc.generate_square(frequency),
                     _ => self.pad_osc.generate_sine(frequency), // Default to sine
                 };
-                
                 let gain = db_to_linear(*gain_db) * intensity;
                 let processed = sample * gain;
+                log::debug!("[GEN] Pad layer: wave={}, gain_db={:.2}, intensity={:.2}, freq={:.2}, sample={:.5}", wave, gain_db, intensity, frequency, processed);
                 (processed, processed) // Mono to stereo
             }
-            
             Layer::Binaural { base_hz, beat_hz, mix_db } => {
-                // Scale binaural beat frequency with intensity
                 let scaled_beat = lerp(1.0, *beat_hz, intensity);
                 let (left, right) = self.binaural_gen.generate(*base_hz, scaled_beat);
-                
                 let gain = db_to_linear(*mix_db) * intensity;
+                log::debug!("[GEN] Binaural layer: base_hz={:.2}, beat_hz={:.2}, scaled_beat={:.2}, mix_db={:.2}, intensity={:.2}, left={:.5}, right={:.5}", base_hz, beat_hz, scaled_beat, mix_db, intensity, left * gain, right * gain);
                 (left * gain, right * gain)
             }
         }
@@ -155,30 +151,34 @@ impl AudioOutputCallback for AudioCallback {
         audio_data: &mut [f32],
     ) -> DataCallbackResult {
         let intensity = self.config.intensity.unwrap_or(0.5);
-        
+
         // Process audio in stereo pairs
         for chunk in audio_data.chunks_mut(2) {
             let mut left_mix = 0.0;
             let mut right_mix = 0.0;
-            
+
             // Generate and mix all layers
             if let Some(ref preset) = self.config.preset {
                 let layers = preset.layers.clone(); // Clone to avoid borrowing issues
-                for layer in &layers {
+                for (i, layer) in layers.iter().enumerate() {
                     let (left, right) = self.generate_layer_audio(layer, intensity);
+                    log::debug!("[MIX] Layer {}: left={:.5}, right={:.5}", i, left, right);
                     left_mix += left;
                     right_mix += right;
                 }
             }
-            
+
             // Apply reverb
             left_mix = self.reverb.process(left_mix);
             right_mix = self.reverb.process(right_mix);
-            
+
+            // Log mixed output before clamping
+            log::debug!("[OUT] Mixed: left={:.5}, right={:.5}", left_mix, right_mix);
+
             // Clamp to prevent clipping
             left_mix = left_mix.clamp(-1.0, 1.0);
             right_mix = right_mix.clamp(-1.0, 1.0);
-            
+
             // Write to output buffer
             if chunk.len() >= 2 {
                 chunk[0] = left_mix;
@@ -187,7 +187,7 @@ impl AudioOutputCallback for AudioCallback {
                 chunk[0] = (left_mix + right_mix) * 0.5; // Mix to mono
             }
         }
-        
+
         DataCallbackResult::Continue
     }
 }
