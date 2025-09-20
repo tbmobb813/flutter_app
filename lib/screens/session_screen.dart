@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../providers/musical_state_provider.dart';
 import '../services/audio_service.dart';
 import '../services/crossfade.dart';
 import '../services/preset_loader.dart' as preset_loader;
@@ -257,6 +259,35 @@ class _SessionScreenState extends State<SessionScreen> {
             FilledButton(
               onPressed: _isPlaying ? _stop : _start,
               child: Text(_isPlaying ? 'Stop' : 'Start'),
+            ),
+            const SizedBox(height: 32),
+            Consumer<MusicalStateProvider>(
+              builder: (context, musicalProvider, child) {
+                final musical = musicalProvider.musical;
+                return Column(
+                  children: [
+                    Text('Tempo: ${musical.tempo}'),
+                    Slider(
+                      min: 60,
+                      max: 120,
+                      value: musical.tempo.toDouble(),
+                      onChanged: (value) {
+                        musicalProvider.updateMusical(tempo: value.round());
+                      },
+                    ),
+                    FilledButton(
+                      onPressed: () {
+                        if (_isPlaying) {
+                          musicalProvider.stopEngine();
+                        } else {
+                          musicalProvider.startEngine();
+                        }
+                      },
+                      child: Text(_isPlaying ? 'Stop' : 'Start'),
+                    ),
+                  ],
+                );
+              },
             ),
           ],
         ),
